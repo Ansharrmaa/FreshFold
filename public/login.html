@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Welcome to FreshFold | Login & Register</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    body { background: #f4f7f6; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
+    
+    .split-layout {
+      display: flex;
+      flex: 1;
+      height: 100%;
+    }
+
+    .split-left {
+      flex: 1;
+      background: linear-gradient(135deg, #0f3f2a 0%, #1a6b4a 100%);
+      color: white;
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .split-left::before {
+      content: '';
+      position: absolute; width: 400px; height: 400px; background: rgba(255,255,255,0.05);
+      border-radius: 50%; top: -100px; right: -100px;
+    }
+    .split-left::after {
+      content: '';
+      position: absolute; width: 300px; height: 300px; background: rgba(255,255,255,0.03);
+      border-radius: 50%; bottom: -50px; left: -50px;
+    }
+
+    .split-left h1 { font-family: var(--font-heading); font-size: 3.5rem; margin-bottom: 20px; line-height: 1.1; }
+    .split-left p { font-size: 1.2rem; opacity: 0.9; line-height: 1.6; max-width: 80%; }
+    .testimonial { margin-top: 50px; padding-top: 50px; border-top: 1px solid rgba(255,255,255,0.2); max-width: 80%; }
+    .testimonial p { font-style: italic; font-size: 1.1rem; }
+    .testimonial .author { margin-top: 10px; font-weight: 600; font-family: var(--font-heading); }
+
+    .split-right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      padding: 40px;
+    }
+
+    .auth-container {
+      width: 100%;
+      max-width: 420px;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .auth-container h2 { font-family: var(--font-heading); color: #1a1a2e; font-size: 2rem; margin-bottom: 10px; }
+    .auth-container p.subtext { color: #6b7280; margin-bottom: 30px; }
+
+    .form-group { margin-bottom: 20px; position: relative; }
+    .form-group label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151; }
+    .form-group input { 
+      width: 100%; padding: 14px 14px 14px 45px; 
+      border: 1.5px solid #e5e7eb; border-radius: 10px; 
+      font-family: var(--font-body); font-size: 1rem; 
+      box-sizing: border-box; transition: 0.3s; 
+      background: #f9fafb;
+    }
+    .form-group input:focus { border-color: #1a6b4a; background: white; outline: none; box-shadow: 0 0 0 4px rgba(26,107,74,0.1); }
+    .form-group i { position: absolute; left: 16px; top: 43px; color: #9ca3af; }
+
+    .btn-full {
+      width: 100%; padding: 15px; background: #1a6b4a; color: white;
+      border: none; border-radius: 10px; font-weight: 600; font-size: 1.05rem;
+      cursor: pointer; transition: 0.3s; margin-top: 15px;
+      box-shadow: 0 4px 15px rgba(26,107,74,0.2);
+    }
+    .btn-full:hover { background: #124b34; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(26,107,74,0.3); }
+
+    .toggle-text { text-align: center; margin-top: 25px; color: #6b7280; }
+    .toggle-text a { color: #1a6b4a; font-weight: 600; cursor: pointer; text-decoration: none; position: relative; }
+    .toggle-text a::after { content: ''; position: absolute; left: 0; bottom: -2px; width: 100%; height: 2px; background: #1a6b4a; transform: scaleX(0); transition: 0.3s; transform-origin: right; }
+    .toggle-text a:hover::after { transform: scaleX(1); transform-origin: left; }
+    
+    .hidden { display: none !important; }
+
+    @media (max-width: 768px) {
+      .split-layout { flex-direction: column; }
+      .split-left { padding: 40px 20px; flex: unset; }
+      .split-left h1 { font-size: 2.5rem; }
+      .split-left p { max-width: 100%; }
+      .testimonial { display: none; }
+      .split-right { padding: 40px 20px; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Minimal Nav -->
+  <a href="index.html" style="position: absolute; top: 30px; left: 40px; color: white; text-decoration: none; font-weight: bold; font-family: var(--font-heading); font-size: 1.5rem; z-index: 10;"><i class="fa-solid fa-sparkles"></i> FreshFold</a>
+  
+  <div class="split-layout">
+    <!-- LEFT MARKETING PANEL -->
+    <div class="split-left">
+      <h1>Experience Premium<br/>Garment Care.</h1>
+      <p>Join over 5,000+ happy customers in Lucknow who trust FreshFold to handle their delicate dry-cleaning and daily laundry with absolute perfection.</p>
+      
+      <div class="testimonial">
+        <p>"FreshFold completely changed how I manage my weekends. The pickup is always on time, and my clothes return practically glowing!"</p>
+        <div class="author">— Anjali Verma</div>
+      </div>
+    </div>
+
+    <!-- RIGHT AUTH PANEL -->
+    <div class="split-right">
+      
+      <!-- LOGIN BOUNDARY -->
+      <div class="auth-container" id="loginBox">
+        <h2>Welcome Back</h2>
+        <p class="subtext">Log in to track your active orders and book faster.</p>
+        <form id="loginForm">
+          <div class="form-group">
+            <label>Phone Number or Admin ID</label>
+            <i class="fa-solid fa-phone"></i>
+            <input type="text" id="loginPhone" placeholder="Enter phone or admin id" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="loginPassword" placeholder="Enter your password" required>
+          </div>
+          <button type="submit" class="btn-full" id="loginBtn">Secure Log In</button>
+        </form>
+        <div class="toggle-text">
+          New to FreshFold? <a onclick="toggleAuth()">Create an account</a>
+        </div>
+      </div>
+
+      <!-- REGISTER BOUNDARY -->
+      <div class="auth-container hidden" id="registerBox">
+        <h2>Join FreshFold</h2>
+        <p class="subtext">Create an account to unlock express booking and automated order tracking.</p>
+        <form id="registerForm">
+          <div class="form-group">
+            <label>Full Name</label>
+            <i class="fa-regular fa-user"></i>
+            <input type="text" id="regName" placeholder="Rahul Sharma" required>
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <i class="fa-solid fa-phone"></i>
+            <input type="tel" id="regPhone" placeholder="10-digit mobile number" required>
+          </div>
+          <div class="form-group" style="display: flex; gap: 15px;">
+            <div style="flex: 1;">
+              <label>Email <span style="font-weight:400; color:#9ca3af">(Optional)</span></label>
+              <i class="fa-regular fa-envelope"></i>
+              <input type="email" id="regEmail" placeholder="For receipts">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Create Password</label>
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="regPassword" placeholder="Minimum 6 characters" required>
+          </div>
+          <div class="form-group">
+            <label>Referral Code <span style="font-weight:400; color:#9ca3af">(Optional — Get ₹50!)</span></label>
+            <i class="fa-solid fa-gift"></i>
+            <input type="text" id="regReferral" placeholder="e.g. FF1234ABCD">
+          </div>
+          <button type="submit" class="btn-full" id="registerBtn">Create Account</button>
+        </form>
+        <div class="toggle-text">
+          Already have an account? <a onclick="toggleAuth()">Log in here</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/toast.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

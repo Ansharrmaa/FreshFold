@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard – FreshFold</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body class="admin-body">
+
+  <!-- LOGIN -->
+  <div class="admin-login" id="adminLogin">
+    <div class="login-card">
+      <div class="logo">✦ FreshFold</div>
+      <h2>Admin Login</h2>
+      <p>Enter credentials to access dashboard</p>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="adminUser" class="input-field" placeholder="admin"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="adminPass" class="input-field" placeholder="••••••••"/>
+      </div>
+      <div id="loginError" class="error-msg"></div>
+      <button class="btn-primary large full-width" onclick="adminLogin()">Login</button>
+      <p class="login-hint">Demo credentials: <strong>admin</strong> / <strong>admin123</strong></p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="admin-dashboard" id="adminDashboard" style="display:none">
+
+    <div class="admin-sidebar">
+      <div class="admin-logo">✦ FreshFold</div>
+      <nav class="admin-nav">
+        <a href="#" class="admin-nav-item active" onclick="showTab('overview',this);return false"><i class="fas fa-tachometer-alt"></i> Overview</a>
+        <a href="#" class="admin-nav-item" onclick="showTab('orders',this);return false"><i class="fas fa-list-alt"></i> Orders</a>
+        <a href="#" class="admin-nav-item" onclick="showTab('customers',this);return false"><i class="fas fa-users"></i> Customers</a>
+        <a href="#" class="admin-nav-item" onclick="showTab('coupons',this);return false"><i class="fas fa-tag"></i> Coupons</a>
+        <a href="#" class="admin-nav-item" onclick="showTab('slots',this);return false"><i class="fas fa-calendar-check"></i> Slots</a>
+        <a href="#" class="admin-nav-item" onclick="showTab('subscriptions',this);return false"><i class="fas fa-crown"></i> Subscriptions</a>
+        <a href="#" class="admin-nav-item" onclick="showTab('settings',this);return false"><i class="fas fa-cog"></i> Settings</a>
+      </nav>
+      <button class="admin-logout" onclick="adminLogout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <h2 id="tabTitle">Overview</h2>
+        <div class="admin-user"><div class="admin-avatar">AD</div> Admin</div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div class="admin-tab active" id="tab-overview">
+        <div class="stats-cards">
+          <div class="stats-card blue"><div class="sc-icon"><i class="fas fa-shopping-bag"></i></div><div class="sc-info"><div class="sc-num" id="stat-total">0</div><div class="sc-label">Total Orders</div></div></div>
+          <div class="stats-card green"><div class="sc-icon"><i class="fas fa-rupee-sign"></i></div><div class="sc-info"><div class="sc-num" id="stat-revenue">₹0</div><div class="sc-label">Total Revenue</div></div></div>
+          <div class="stats-card orange"><div class="sc-icon"><i class="fas fa-clock"></i></div><div class="sc-info"><div class="sc-num" id="stat-pending">0</div><div class="sc-label">Pending Orders</div></div></div>
+          <div class="stats-card purple"><div class="sc-icon"><i class="fas fa-check-circle"></i></div><div class="sc-info"><div class="sc-num" id="stat-delivered">0</div><div class="sc-label">Delivered</div></div></div>
+        </div>
+        <div class="admin-card">
+          <div class="card-header-row">
+            <h3>Recent Orders</h3>
+            <button class="btn-outline small" onclick="showTab('orders',document.querySelector('.admin-nav-item:nth-child(2))'))">View All</button>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Order ID</th><th>Customer</th><th>Service</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="recentOrdersBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="admin-card">
+          <h3>Revenue This Week</h3>
+          <div class="bar-chart" id="revenueChart"></div>
+        </div>
+      </div>
+
+      <!-- ORDERS -->
+      <div class="admin-tab" id="tab-orders">
+        <div class="tab-toolbar">
+          <input type="text" class="input-field" placeholder="Search by ID, name, phone..." id="orderSearch" oninput="filterOrders()"/>
+          <select class="input-field" id="statusFilter" onchange="filterOrders()">
+            <option value="">All Status</option>
+            <option value="Pending">Pending</option>
+            <option value="Picked Up">Picked Up</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Out for Delivery">Out for Delivery</option>
+            <option value="Delivered">Delivered</option>
+          </select>
+        </div>
+        <div class="admin-card">
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Order ID</th><th>Customer</th><th>Phone</th><th>Service</th><th>Timeline</th><th>Amount</th><th>Date</th><th>Status</th><th>Update</th></tr></thead>
+              <tbody id="allOrdersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUSTOMERS -->
+      <div class="admin-tab" id="tab-customers">
+        <div class="admin-card">
+          <h3>Customer List</h3>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Name</th><th>Phone</th><th>Total Orders</th><th>Total Spent</th><th>Last Order</th></tr></thead>
+              <tbody id="customersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- COUPONS -->
+      <div class="admin-tab" id="tab-coupons">
+        <div class="admin-card">
+          <div class="card-header-row">
+            <h3>Manage Coupons</h3>
+            <button class="btn-primary" onclick="showCouponForm()">+ Add Coupon</button>
+          </div>
+          <div class="coupon-form" id="couponForm" style="display:none">
+            <div class="form-grid">
+              <div class="form-group"><label>Coupon Code</label><input type="text" id="newCode" class="input-field" placeholder="e.g. SAVE10"/></div>
+              <div class="form-group"><label>Discount %</label><input type="number" id="newDiscount" class="input-field" placeholder="10"/></div>
+              <div class="form-group"><label>Expiry Date</label><input type="date" id="newExpiry" class="input-field"/></div>
+              <div class="form-group"><label>Min Order (₹)</label><input type="number" id="newMin" class="input-field" placeholder="200"/></div>
+            </div>
+            <div class="form-btn-row">
+              <button class="btn-outline" onclick="hideCouponForm()">Cancel</button>
+              <button class="btn-primary" onclick="addCoupon()">Save Coupon</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Code</th><th>Discount</th><th>Min Order</th><th>Expiry</th><th>Uses</th><th>Action</th></tr></thead>
+              <tbody id="couponsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLOTS -->
+      <div class="admin-tab" id="tab-slots">
+        <div class="admin-card">
+          <div class="card-header-row">
+            <h3>Slot Capacity Management</h3>
+          </div>
+          <div class="form-grid" style="margin-bottom:20px;">
+            <div class="form-group">
+              <label>Select Date</label>
+              <input type="date" id="slotMgmtDate" class="input-field" onchange="loadSlots()" />
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Time Slot</th><th>Capacity</th><th>Booked</th><th>Remaining</th><th>Update</th></tr></thead>
+              <tbody id="slotsBody">
+                <tr><td colspan="5" style="color:#6b7280;">Select a date to view slots</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBSCRIPTIONS -->
+      <div class="admin-tab" id="tab-subscriptions">
+        <div class="admin-card">
+          <h3>All Subscriptions</h3>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Sub ID</th><th>Customer</th><th>Phone</th><th>Plan</th><th>Status</th><th>Amount</th><th>Date</th></tr></thead>
+              <tbody id="adminSubsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="admin-tab" id="tab-settings">
+        <div class="admin-card">
+          <h3>Business Settings</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Business Name</label><input type="text" class="input-field" value="FreshFold Laundry"/></div>
+            <div class="form-group"><label>Phone</label><input type="text" class="input-field" value="+91 98765 43210"/></div>
+            <div class="form-group"><label>Email</label><input type="email" class="input-field" value="hello@freshfold.in"/></div>
+            <div class="form-group"><label>City</label><input type="text" class="input-field" value="Lucknow"/></div>
+            <div class="form-group"><label>Free Delivery Above (₹)</label><input type="number" class="input-field" value="499"/></div>
+            <div class="form-group"><label>Delivery Fee (₹)</label><input type="number" class="input-field" value="49"/></div>
+          </div>
+          <button class="btn-primary" onclick="alert('Settings saved successfully!')">Save Settings</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STATUS MODAL -->
+  <div class="modal-overlay" id="statusModal">
+    <div class="modal small">
+      <h3>Update Order Status</h3>
+      <p style="margin-bottom:12px">Order: <strong id="modalOrderNum"></strong></p>
+
+      <!-- Tabs -->
+      <div style="display:flex; gap:0; margin-bottom:16px; border-bottom:2px solid #e5e7eb;">
+        <button id="modalTabStatus" onclick="switchModalTab('status')" style="flex:1; padding:10px; border:none; background:transparent; font-weight:600; font-size:0.9rem; cursor:pointer; border-bottom:2px solid #059669; color:#059669; margin-bottom:-2px;">Status & Agent</button>
+        <button id="modalTabPhotos" onclick="switchModalTab('photos')" style="flex:1; padding:10px; border:none; background:transparent; font-weight:600; font-size:0.9rem; cursor:pointer; color:#6b7280; margin-bottom:-2px;">Photos</button>
+      </div>
+
+      <!-- Status Tab Content -->
+      <div id="modalStatusContent">
+        <select class="input-field" id="newStatus" style="margin-bottom:16px">
+          <option value="Pending">Pending</option>
+          <option value="Picked Up">Picked Up</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Out for Delivery">Out for Delivery</option>
+          <option value="Delivered">Delivered</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <div id="agentFields" style="margin-bottom:16px; text-align:left;">
+          <label style="font-size:0.85rem; font-weight:bold; color:#374151;">Assign Delivery Agent</label>
+          <input type="text" id="agentName" class="input-field" placeholder="Agent Name (e.g. Ramesh)" style="margin-top:5px; margin-bottom:10px;">
+          <input type="tel" id="agentPhone" class="input-field" placeholder="Agent Phone" style="margin-bottom:10px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="font-size:0.8rem; color:#6b7280;">Agent Latitude</label>
+              <input type="text" id="agentLat" class="input-field" placeholder="e.g. 26.8467" style="margin-top:4px;">
+            </div>
+            <div>
+              <label style="font-size:0.8rem; color:#6b7280;">Agent Longitude</label>
+              <input type="text" id="agentLng" class="input-field" placeholder="e.g. 80.9462" style="margin-top:4px;">
+            </div>
+          </div>
+        </div>
+        <div class="form-btn-row">
+          <button class="btn-outline" onclick="closeStatusModal()">Cancel</button>
+          <button class="btn-primary" onclick="updateStatus()">Update Status</button>
+        </div>
+      </div>
+
+      <!-- Photos Tab Content -->
+      <div id="modalPhotosContent" style="display:none; text-align:left;">
+        <div style="margin-bottom:16px;">
+          <label style="font-size:0.85rem; font-weight:bold; color:#92400e; display:block; margin-bottom:6px;">📷 Before Photos</label>
+          <input type="file" id="beforePhotos" class="input-field" multiple accept="image/*" style="padding:8px;" />
+          <div id="beforePhotoPreview" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;"></div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="font-size:0.85rem; font-weight:bold; color:#166534; display:block; margin-bottom:6px;">📷 After Photos</label>
+          <input type="file" id="afterPhotos" class="input-field" multiple accept="image/*" style="padding:8px;" />
+          <div id="afterPhotoPreview" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;"></div>
+        </div>
+        <div class="form-btn-row">
+          <button class="btn-outline" onclick="closeStatusModal()">Cancel</button>
+          <button class="btn-primary" onclick="uploadPhotos()"><i class="fas fa-upload"></i> Upload Photos</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

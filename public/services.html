@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Services &amp; Pricing – FreshFold</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a6b4a">
+</head>
+<body>
+
+  <nav class="navbar" id="navbar">
+    <div class="nav-container" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; width:100%; white-space:nowrap;">
+      <a href="index.html" class="logo" style="flex-shrink:0;"><img src="img/logo.png" alt="FreshFold" class="logo-img" style="width:36px; height:36px; min-width:36px; object-fit:contain; border-radius:10px;"> FreshFold</a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="services.html" class="active">Services</a></li>
+        <li><a href="booking.html">Book Now</a></li>
+        <li><a href="track.html">Track Order</a></li>
+      </ul>
+      <div class="nav-right" style="display:flex; align-items:center; gap:16px; flex-wrap:nowrap; flex-shrink:0;">
+        <button id="langToggle" onclick="toggleLanguage()" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:50px; padding:6px 14px; font-size:13px; font-weight:700; cursor:pointer; color:#166534; display:flex; align-items:center; justify-content:center; min-width:44px; height:36px;">हिं</button>
+        <a href="booking.html" class="btn-primary nav-cta">Schedule Pickup</a>
+        <a href="login.html" class="btn-outline" id="authNavBtn" style="padding: 8px 20px; border-radius: 50px; font-size: 14px;">Login</a>
+        <div class="nav-avatar-wrap" id="navAvatarWrap" style="display:none;">
+          <div class="nav-avatar" id="navAvatar" onclick="toggleNavDropdown()"></div>
+          <div class="nav-dropdown" id="navDropdown">
+            <div class="nav-dropdown-header"><strong id="navUserName">User</strong><span id="navUserPhone">Phone</span></div>
+            <a href="profile.html"><i class="fa-regular fa-user"></i> My Profile</a>
+            <a href="profile.html"><i class="fa-solid fa-boxes-stacked"></i> My Orders</a>
+            <a href="profile.html"><i class="fa-solid fa-wallet"></i> Wallet</a>
+            <div class="divider"></div>
+            <button class="logout-item" onclick="logoutUser()"><i class="fa-solid fa-right-from-bracket"></i> Log Out</button>
+          </div>
+        </div>
+        <button class="hamburger" id="hamburger"><i class="fas fa-bars"></i></button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="index.html">Home</a><a href="services.html">Services</a>
+      <a href="booking.html">Book Now</a><a href="track.html">Track Order</a>
+    </div>
+  </nav>
+
+  <section class="page-hero">
+    <div class="container">
+      <div class="section-badge">Transparent Pricing</div>
+      <h1>Services &amp; <span class="accent">Pricing</span></h1>
+      <p>The sooner you need it, the faster we deliver — you control the cost.</p>
+    </div>
+  </section>
+
+  <!-- PRICING CALCULATOR -->
+  <section class="pricing-calc-section">
+    <div class="container">
+      <div class="calc-wrapper">
+        <div class="calc-header">
+          <h2>💰 Instant Price Calculator</h2>
+          <p>Get an estimate before you book</p>
+        </div>
+        <div class="calc-body">
+          <div class="calc-row">
+            <label>Service Type</label>
+            <div class="btn-group" id="serviceSelect">
+              <button class="toggle-btn active" data-service="ironing">Ironing</button>
+              <button class="toggle-btn" data-service="laundry">Laundry</button>
+              <button class="toggle-btn" data-service="drycleaning">Dry Cleaning</button>
+            </div>
+          </div>
+          <div class="calc-row" id="qtyGroupContainer">
+            <label id="qtyLabel" style="margin-bottom:12px; display:block; font-weight:600; color:#1a1a2e;">Number of Items</label>
+            <!-- By default showing itemized view. JS will populate this -->
+            <div id="itemizedContainerCalc" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:12px;"></div>
+            <!-- For laundry (kg) -->
+            <div id="kgContainerCalc" style="display:none;" class="qty-control">
+              <button id="qtyMinus">−</button>
+              <span id="qtyValue">3</span>
+              <button id="qtyPlus">+</button>
+            </div>
+          </div>
+          <div class="calc-row">
+            <label>Return Timeline</label>
+            <div class="timeline-options" id="timelineSelect">
+              <label class="timeline-opt">
+                <input type="radio" name="timeline" value="express" checked/>
+                <div class="timeline-card">
+                  <div class="tl-icon">⚡</div>
+                  <div class="tl-name">Express</div>
+                  <div class="tl-time" id="tl-express-time">2 Hours</div>
+                  <div class="tl-mult">Premium Rate</div>
+                </div>
+              </label>
+              <label class="timeline-opt">
+                <input type="radio" name="timeline" value="sameday"/>
+                <div class="timeline-card">
+                  <div class="tl-icon">🌤️</div>
+                  <div class="tl-name">Same Day</div>
+                  <div class="tl-time" id="tl-same-time">6 Hours</div>
+                  <div class="tl-mult">Standard Rate</div>
+                </div>
+              </label>
+              <label class="timeline-opt">
+                <input type="radio" name="timeline" value="nextday"/>
+                <div class="timeline-card">
+                  <div class="tl-icon">📅</div>
+                  <div class="tl-name">Next Day</div>
+                  <div class="tl-time">24 Hours</div>
+                  <div class="tl-mult">Economy Rate</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="calc-row">
+            <label>Coupon Code</label>
+            <div class="coupon-row">
+              <input type="text" id="couponInput" placeholder="Enter code (e.g. FRESH20)" class="input-field"/>
+              <button class="btn-outline" id="applyCoupon">Apply</button>
+            </div>
+            <div id="couponMsg" class="coupon-msg"></div>
+          </div>
+          <div class="calc-result">
+            <div class="result-breakdown" id="breakdown"></div>
+            <div class="result-total">
+              <span>Estimated Total</span>
+              <span class="total-price" id="totalPrice">₹147</span>
+            </div>
+            <a href="booking.html" class="btn-primary large full-width">Book This Service</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DETAILED PRICING TABLES -->
+  <section class="detailed-pricing">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-badge">Full Pricing</div>
+        <h2>Complete Price List</h2>
+      </div>
+
+      <div class="pricing-table">
+        <div class="pt-header ironing-header">
+          <span class="pt-icon">👔</span>
+          <div><h3>Ironing</h3><p>Priced per item</p></div>
+        </div>
+        <table>
+          <thead><tr><th>Item</th><th>⚡ Express (2hr)</th><th>🌤 Same Day (6hr)</th><th>📅 Next Day</th></tr></thead>
+          <tbody>
+            <tr><td>Shirt / T-Shirt</td><td>₹49</td><td>₹35</td><td>₹25</td></tr>
+            <tr><td>Trousers / Jeans</td><td>₹59</td><td>₹45</td><td>₹35</td></tr>
+            <tr><td>Saree</td><td>₹99</td><td>₹79</td><td>₹59</td></tr>
+            <tr><td>Kurta / Salwar</td><td>₹79</td><td>₹59</td><td>₹45</td></tr>
+            <tr><td>Bedsheet (single)</td><td>₹79</td><td>₹59</td><td>₹45</td></tr>
+            <tr><td>Bedsheet (double)</td><td>₹99</td><td>₹79</td><td>₹59</td></tr>
+            <tr><td>Suit / Blazer</td><td>₹129</td><td>₹99</td><td>₹79</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pricing-table">
+        <div class="pt-header laundry-header">
+          <span class="pt-icon">🫧</span>
+          <div><h3>Laundry</h3><p>Priced per kilogram (minimum 2 kg)</p></div>
+        </div>
+        <table>
+          <thead><tr><th>Package</th><th>⚡ Express (4hr)</th><th>🌤 Same Day (8hr)</th><th>📅 Next Day</th></tr></thead>
+          <tbody>
+            <tr><td>Wash &amp; Fold</td><td>₹129/kg</td><td>₹99/kg</td><td>₹79/kg</td></tr>
+            <tr><td>Wash, Dry &amp; Fold</td><td>₹149/kg</td><td>₹119/kg</td><td>₹89/kg</td></tr>
+            <tr><td>Wash, Iron &amp; Pack</td><td>₹179/kg</td><td>₹149/kg</td><td>₹119/kg</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pricing-table">
+        <div class="pt-header dry-header">
+          <span class="pt-icon">🧥</span>
+          <div><h3>Dry Cleaning</h3><p>Priced per item</p></div>
+        </div>
+        <table>
+          <thead><tr><th>Item</th><th>⚡ Express (6hr)</th><th>🌤 Same Day (12hr)</th><th>📅 Next Day</th></tr></thead>
+          <tbody>
+            <tr><td>Shirt / Top</td><td>₹249</td><td>₹199</td><td>₹149</td></tr>
+            <tr><td>Trousers / Jeans</td><td>₹299</td><td>₹249</td><td>₹199</td></tr>
+            <tr><td>Suit (2-piece)</td><td>₹699</td><td>₹549</td><td>₹449</td></tr>
+            <tr><td>Saree (plain)</td><td>₹349</td><td>₹279</td><td>₹199</td></tr>
+            <tr><td>Saree (embroidered)</td><td>₹599</td><td>₹499</td><td>₹399</td></tr>
+            <tr><td>Winter Jacket / Coat</td><td>₹799</td><td>₹649</td><td>₹499</td></tr>
+            <tr><td>Curtains (per panel)</td><td>₹449</td><td>₹349</td><td>₹249</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-badge">FAQ</div>
+        <h2>Common Questions</h2>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">How does time-based pricing work? <span>+</span></div>
+          <div class="faq-a">The faster you need your clothes, the higher the rate. Express (2hr) costs more than Next Day. You choose based on urgency and budget.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">Is there a minimum order value? <span>+</span></div>
+          <div class="faq-a">Yes, minimum order is ₹199. For laundry, minimum weight is 2 kg.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">Do you offer pickup at specific times? <span>+</span></div>
+          <div class="faq-a">Yes! You can select your preferred pickup slot — morning (7–11am), afternoon (12–4pm), or evening (5–9pm).</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">What if my clothes are damaged? <span>+</span></div>
+          <div class="faq-a">All garments are insured. In the unlikely event of damage, we provide full compensation as per our garment protection policy.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">Are pickup and delivery charges extra? <span>+</span></div>
+          <div class="faq-a">Pickup &amp; delivery is FREE on orders above ₹499. Below that, a nominal ₹49 delivery fee applies.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-banner">
+    <div class="container">
+      <h2>Know What You Need?</h2>
+      <p>Use coupon <span class="coupon-code">FRESH20</span> for 20% off your first order</p>
+      <a href="booking.html" class="btn-primary large">Book Now</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo">✦ FreshFold</div>
+          <p>Premium laundry &amp; dry cleaning with home pickup across Lucknow.</p>
+        </div>
+        <div class="footer-col"><h4>Services</h4><a href="services.html">Ironing</a><a href="services.html">Laundry</a><a href="services.html">Dry Cleaning</a></div>
+        <div class="footer-col"><h4>Links</h4><a href="booking.html">Book Now</a><a href="track.html">Track Order</a><a href="admin.html">Admin</a></div>
+        <div class="footer-col"><h4>Contact</h4><p>+91 98765 43210</p><p>hello@freshfold.in</p></div>
+      </div>
+      <div class="footer-bottom"><p>© 2025 FreshFold. All rights reserved.</p></div>
+    </div>
+  </footer>
+
+  <script src="js/toast.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/pricing.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/chatbot.js"></script>
+</body>
+</html>
