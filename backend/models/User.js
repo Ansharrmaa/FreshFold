@@ -24,7 +24,10 @@ const userSchema = new mongoose.Schema({
   }],
   activePlan: { type: String, default: 'none' }, // 'none', 'starter', 'pro', 'family'
   planExpiry: { type: Date, default: null },
-  lastSubscriptionTxn: { type: String, default: null }
+  lastSubscriptionTxn: { type: String, default: null },
+  resetToken: { type: String, default: null },
+  resetTokenExpiry: { type: Date, default: null },
+  googleId: { type: String, default: null, sparse: true }
 }, {
   timestamps: true
 });

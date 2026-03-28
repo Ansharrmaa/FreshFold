@@ -122,6 +122,7 @@
   </style>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1a6b4a">
+  <script>if(localStorage.getItem('theme')==='dark') document.documentElement.setAttribute('data-theme', 'dark');</script>
 </head>
 <body>
 
@@ -222,12 +223,19 @@
     </div>
 
     <!-- ORDERS LIST -->
-    <div class="section-title">
+    <div class="section-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       Order History
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="orderSearch" placeholder="Search orders..." style="padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:0.9rem;" onkeypress="if(event.key==='Enter')handleOrderSearch()">
+        <button onclick="handleOrderSearch()" style="background:#1a6b4a; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-search"></i></button>
+      </div>
     </div>
     
     <div id="ordersList">
       <p style="color: #6b7280;">Fetching your order history...</p>
+    </div>
+    <div id="loadMoreSection" style="text-align:center; margin-top:20px; display:none;">
+      <button onclick="loadMoreOrders()" class="btn-outline">Load More</button>
     </div>
 
     <!-- SUBSCRIPTION HISTORY -->

@@ -2,6 +2,18 @@
 //  tracking.js  –  track.html order tracker (API-connected)
 // ============================================================
 
+let socket;
+if (typeof io !== 'undefined') {
+  socket = io();
+  socket.on('status_updated', (data) => {
+    const currentId = document.getElementById('t-orderId').textContent;
+    if (data.orderId === currentId && currentId !== '') {
+      findAndDisplayOrder(currentId);
+      if (typeof showToast !== 'undefined') showToast(`Order ${data.orderId} updated to ${data.status}!`, 'info');
+    }
+  });
+}
+
 function trackOrder() {
   const id = document.getElementById('trackInput').value.trim().toUpperCase();
   if (!id) { alert('Please enter an Order ID'); return; }
@@ -23,6 +35,7 @@ async function findAndDisplayOrder(id) {
     renderOrder(order);
     document.getElementById('trackResult').style.display = 'block';
     document.getElementById('trackResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (socket) socket.emit('join_order', id);
   } catch {
     document.getElementById('trackNotFound').style.display = 'block';
   }

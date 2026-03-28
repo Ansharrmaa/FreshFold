@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/style.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script>if(localStorage.getItem('theme')==='dark') document.documentElement.setAttribute('data-theme', 'dark');</script>
 </head>
 <body class="admin-body">
 
@@ -191,7 +192,26 @@
             <div class="form-group"><label>Free Delivery Above (₹)</label><input type="number" class="input-field" value="499"/></div>
             <div class="form-group"><label>Delivery Fee (₹)</label><input type="number" class="input-field" value="49"/></div>
           </div>
-          <button class="btn-primary" onclick="alert('Settings saved successfully!')">Save Settings</button>
+          <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:30px;">Save General Settings</button>
+
+          <h3 style="margin-top:20px; border-top:1px solid #e5e7eb; padding-top:20px;">💰 Service Pricing (₹)</h3>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Service</th><th>Express</th><th>Same Day</th><th>Next Day</th></tr></thead>
+              <tbody id="pricesBody">
+                <tr><td>Ironing (per item)</td><td><input type="number" id="p-ironing-express" class="input-field small"></td><td><input type="number" id="p-ironing-sameday" class="input-field small"></td><td><input type="number" id="p-ironing-nextday" class="input-field small"></td></tr>
+                <tr><td>Laundry (per kg)</td><td><input type="number" id="p-laundry-express" class="input-field small"></td><td><input type="number" id="p-laundry-sameday" class="input-field small"></td><td><input type="number" id="p-laundry-nextday" class="input-field small"></td></tr>
+                <tr><td>Dry Cleaning (per item)</td><td><input type="number" id="p-drycleaning-express" class="input-field small"></td><td><input type="number" id="p-drycleaning-sameday" class="input-field small"></td><td><input type="number" id="p-drycleaning-nextday" class="input-field small"></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="margin-top:30px;">👔 Garment Multipliers</h3>
+          <p style="font-size:0.85rem; color:#6b7280; margin-bottom:15px;">Cost = Base Rate × Multiplier (Applies to Ironing & Dry Cleaning)</p>
+          <div id="multipliersGrid" class="form-grid" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));">
+            <!-- Injected via JS -->
+          </div>
+          <button class="btn-primary" onclick="savePrices()" style="margin-top:20px;">Update Prices & Multipliers</button>
         </div>
       </div>
 

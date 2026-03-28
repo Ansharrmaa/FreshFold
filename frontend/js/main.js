@@ -2,18 +2,7 @@
 //  main.js  –  shared across all pages (API-connected)
 // ============================================================
 
-// ----- NAVBAR scroll effect -----
-const navbar = document.getElementById('navbar');
-const hamburger = document.getElementById('hamburger');
-const mobileMenu = document.getElementById('mobileMenu');
-
-window.addEventListener('scroll', () => {
-  if (navbar) navbar.classList.toggle('scrolled', window.scrollY > 20);
-});
-
-if (hamburger && mobileMenu) {
-  hamburger.addEventListener('click', () => mobileMenu.classList.toggle('open'));
-}
+// ----- NAVBAR scroll & hamburger — now handled by navbar.js -----
 
 // ----- SHARED PRICING DATA (client-side for calculator, same as backend) -----
 const PRICES = {
@@ -28,7 +17,7 @@ const TIMELINE_LABELS = {
   nextday: { ironing: '24 hrs', laundry: '24 hrs', drycleaning: '24 hrs' }
 };
 
-const GARMENT_ITEMS = [
+let GARMENT_ITEMS = [
   { id: 'shirt', name: 'Shirt / T-Shirt', icon: '👔', multiplier: 1.0 },
   { id: 'trouser', name: 'Trousers / Jeans', icon: '👖', multiplier: 1.2 },
   { id: 'shorts', name: 'Shorts / Skirt', icon: '🩳', multiplier: 0.8 },
@@ -42,21 +31,46 @@ const GARMENT_ITEMS = [
   { id: 'other', name: 'Other / Custom', icon: '✨', multiplier: 1.0 }
 ];
 
+// ----- DYNAMIC PRICING FETCH -----
+async function fetchPrices() {
+  try {
+    const settings = await API.get('/settings');
+    if (settings) {
+      // Update PRICES
+      const services = ['ironing', 'laundry', 'drycleaning'];
+      const levels   = ['express', 'sameday', 'nextday'];
+      services.forEach(s => {
+        levels.forEach(l => {
+          const key = `price_${s}_${l}`;
+          if (settings[key]) PRICES[s][l] = parseInt(settings[key]);
+        });
+      });
+
+      // Update GARMENT_ITEMS multipliers
+      GARMENT_ITEMS.forEach(it => {
+        const key = `multiplier_${it.id}`;
+        if (settings[key]) it.multiplier = parseFloat(settings[key]);
+      });
+    }
+  } catch (err) {
+    console.warn('Could not fetch dynamic prices, using defaults.');
+  }
+}
+
 // ----- API Helper -----
 const API = {
   _baseUrl: '/api',
 
   _getToken() {
-    return localStorage.getItem('customerToken') || localStorage.getItem('adminToken');
+    return localStorage.getItem('ff_token');
   },
 
   _setToken(token) {
-    localStorage.setItem('customerToken', token);
+    localStorage.setItem('ff_token', token);
   },
 
   _clearToken() {
-    localStorage.removeItem('customerToken');
-    localStorage.removeItem('adminToken');
+    localStorage.removeItem('ff_token');
   },
 
   async _request(method, path, body = null, auth = false) {
@@ -105,63 +119,12 @@ function toggleFaq(el) {
 }
 
 // ============================================================
-// GLOBAL AUTH NAVIGATION LOGIC — Avatar + Dropdown
+// GLOBAL AUTH NAVIGATION LOGIC — Now handled by navbar.js
+// toggleNavDropdown(), logoutUser(), avatar population all in navbar.js
 // ============================================================
-function toggleNavDropdown() {
-  const dd = document.getElementById('navDropdown');
-  if (dd) dd.classList.toggle('open');
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-  const wrap = document.getElementById('navAvatarWrap');
-  const dd = document.getElementById('navDropdown');
-  if (wrap && dd && !wrap.contains(e.target)) {
-    dd.classList.remove('open');
-  }
-});
-
-function logoutUser() {
-  localStorage.removeItem('customerToken');
-  window.location.href = 'login.html';
-}
 
 window.addEventListener('DOMContentLoaded', async () => {
-  const authBtn = document.getElementById('authNavBtn');
-  const avatarWrap = document.getElementById('navAvatarWrap');
-  const avatar = document.getElementById('navAvatar');
-  if (!authBtn) return;
-
-  const token = localStorage.getItem('customerToken');
-  if (token) {
-    try {
-      const resp = await fetch('/api/users/me', { headers: { 'Authorization': `Bearer ${token}` } });
-      if (resp.ok) {
-        const user = await resp.json();
-        // Hide login button, show avatar
-        authBtn.style.display = 'none';
-        if (avatarWrap) avatarWrap.style.display = 'block';
-        
-        // Set avatar content: photo or initials
-        if (avatar) {
-          if (user.profilePhoto) {
-            avatar.innerHTML = `<img src="${user.profilePhoto}" alt="${user.name}">`;
-          } else {
-            const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-            avatar.textContent = initials;
-          }
-        }
-        
-        // Populate dropdown header
-        const nameEl = document.getElementById('navUserName');
-        const phoneEl = document.getElementById('navUserPhone');
-        if (nameEl) nameEl.textContent = user.name;
-        if (phoneEl) phoneEl.textContent = user.phone;
-      } else {
-        localStorage.removeItem('customerToken');
-      }
-    } catch(e) {}
-  }
+  await fetchPrices(); // Get latest price config
 });
 
 // PWA Service Worker Registration

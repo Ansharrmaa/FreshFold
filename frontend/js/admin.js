@@ -249,23 +249,86 @@ document.getElementById('statusModal').addEventListener('click', function(e) {
   if (e.target === this) closeStatusModal();
 });
 
-// ---- SETTINGS ----
-// Add save settings handler after page loads
+// ---- SETTINGS & PRICES ----
+async function saveSettings() {
+  const inputs = document.querySelectorAll('#tab-settings .input-field:not(.small)');
+  const keys = ['businessName', 'phone', 'email', 'city', 'freeDeliveryAbove', 'deliveryFee'];
+  const settings = {};
+  inputs.forEach((inp, i) => { if (keys[i]) settings[keys[i]] = inp.value; });
+  try {
+    await API.authPut('/settings', settings);
+    alert('General settings saved successfully!');
+  } catch (err) {
+    alert('Error: ' + (err.error || 'Failed to save'));
+  }
+}
+
+async function loadPrices() {
+  try {
+    const settings = await API.authGet('/settings');
+    
+    // Load Service Prices
+    const services = ['ironing', 'laundry', 'drycleaning'];
+    const levels   = ['express', 'sameday', 'nextday'];
+    
+    services.forEach(s => {
+      levels.forEach(l => {
+        const val = settings[`price_${s}_${l}`] || PRICES[s][l];
+        const input = document.getElementById(`p-${s}-${l}`);
+        if (input) input.value = val;
+      });
+    });
+
+    // Load Garment Multipliers
+    const grid = document.getElementById('multipliersGrid');
+    if (grid) {
+      grid.innerHTML = GARMENT_ITEMS.map(it => {
+        const val = settings[`multiplier_${it.id}`] || it.multiplier;
+        return `<div class="form-group">
+          <label>${it.icon} ${it.name}</label>
+          <input type="number" step="0.1" class="input-field small p-mult" data-id="${it.id}" value="${val}">
+        </div>`;
+      }).join('');
+    }
+  } catch (err) {
+    console.error('Failed to load prices', err);
+  }
+}
+
+async function savePrices() {
+  const settings = {};
+  
+  // Service Prices
+  const services = ['ironing', 'laundry', 'drycleaning'];
+  const levels   = ['express', 'sameday', 'nextday'];
+  services.forEach(s => {
+    levels.forEach(l => {
+      const val = document.getElementById(`p-${s}-${l}`).value;
+      settings[`price_${s}_${l}`] = val;
+    });
+  });
+
+  // Multipliers
+  document.querySelectorAll('.p-mult').forEach(inp => {
+    settings[`multiplier_${inp.dataset.id}`] = inp.value;
+  });
+
+  try {
+    await API.authPut('/settings', settings);
+    alert('Pricing and multipliers updated successfully!');
+    // Ideally we would trigger a refresh of the global PRICES object 
+    // but that lives in main.js. For now, it will update on next page load.
+  } catch (err) {
+    alert('Error: ' + (err.error || 'Failed to save prices'));
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  const settingsBtn = document.querySelector('#tab-settings .btn-primary');
-  if (settingsBtn) {
-    settingsBtn.onclick = async function() {
-      const inputs = document.querySelectorAll('#tab-settings .input-field');
-      const keys = ['businessName', 'phone', 'email', 'city', 'freeDeliveryAbove', 'deliveryFee'];
-      const settings = {};
-      inputs.forEach((inp, i) => { if (keys[i]) settings[keys[i]] = inp.value; });
-      try {
-        await API.authPut('/settings', settings);
-        alert('Settings saved successfully!');
-      } catch (err) {
-        alert('Error: ' + (err.error || 'Failed to save'));
-      }
-    };
+  if (localStorage.getItem('ff_token')) {
+    document.getElementById('adminLogin').style.display = 'none';
+    document.getElementById('adminDashboard').style.display = 'flex';
+    initDashboard();
+    loadPrices(); // Load prices into settings tab
   }
 });
 

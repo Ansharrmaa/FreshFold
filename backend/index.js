@@ -4,6 +4,8 @@
 require('dotenv').config();
 
 const express   = require('express');
+const http      = require('http');
+const { Server } = require('socket.io');
 const mongoose  = require('mongoose');
 const helmet    = require('helmet');
 const cors      = require('cors');
@@ -21,13 +23,23 @@ const invoicesRouter = require('./routes/invoices');
 const slotsRouter    = require('./routes/slots');
 
 const app  = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  socket.on('join_order', (orderId) => {
+    socket.join(orderId);
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 
 // ---- global middlewares ----
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // increased for base64 photos
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // ---- rate limiters ----
 const apiLimiter = rateLimit({
@@ -58,7 +70,7 @@ app.use('/api/slots',    apiLimiter, slotsRouter);
 // ---- Fallback: serve index.html for unknown routes ----
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
   } else {
     next();
   }
@@ -66,7 +78,7 @@ app.use((req, res, next) => {
 
 // ---- Start ----
 connectDB().then(() => {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`\n🧺 FreshFold server running at http://localhost:${PORT}\n`);
     console.log(`   Features active:`);
     console.log(`   ✅ Slot Capacity Management  → /api/slots`);

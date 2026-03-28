@@ -24,41 +24,12 @@
   </style>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1a6b4a">
+  <script>if(localStorage.getItem('theme')==='dark') document.documentElement.setAttribute('data-theme', 'dark');</script>
 </head>
 <body>
 
-  <nav class="navbar" id="navbar">
-    <div class="nav-container" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; width:100%; white-space:nowrap;">
-      <a href="index.html" class="logo" style="flex-shrink:0;"><img src="img/logo.png" alt="FreshFold" class="logo-img" style="width:36px; height:36px; min-width:36px; object-fit:contain; border-radius:10px;"> FreshFold</a>
-      <ul class="nav-links">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="services.html">Services</a></li>
-        <li><a href="booking.html" class="active">Book Now</a></li>
-        <li><a href="track.html">Track Order</a></li>
-      </ul>
-      <div class="nav-right" style="display:flex; align-items:center; gap:16px; flex-wrap:nowrap; flex-shrink:0;">
-        <button id="langToggle" onclick="toggleLanguage()" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:50px; padding:6px 14px; font-size:13px; font-weight:700; cursor:pointer; color:#166534; display:flex; align-items:center; justify-content:center; min-width:44px; height:36px;">हिं</button>
-        <a href="booking.html" class="btn-primary nav-cta">Schedule Pickup</a>
-        <a href="login.html" class="btn-outline" id="authNavBtn" style="padding: 8px 20px; border-radius: 50px; font-size: 14px;">Login</a>
-        <div class="nav-avatar-wrap" id="navAvatarWrap" style="display:none;">
-          <div class="nav-avatar" id="navAvatar" onclick="toggleNavDropdown()"></div>
-          <div class="nav-dropdown" id="navDropdown">
-            <div class="nav-dropdown-header"><strong id="navUserName">User</strong><span id="navUserPhone">Phone</span></div>
-            <a href="profile.html"><i class="fa-regular fa-user"></i> My Profile</a>
-            <a href="profile.html"><i class="fa-solid fa-boxes-stacked"></i> My Orders</a>
-            <a href="profile.html"><i class="fa-solid fa-wallet"></i> Wallet</a>
-            <div class="divider"></div>
-            <button class="logout-item" onclick="logoutUser()"><i class="fa-solid fa-right-from-bracket"></i> Log Out</button>
-          </div>
-        </div>
-        <button class="hamburger" id="hamburger"><i class="fas fa-bars"></i></button>
-      </div>
-    </div>
-    <div class="mobile-menu" id="mobileMenu">
-      <a href="index.html">Home</a><a href="services.html">Services</a>
-      <a href="booking.html">Book Now</a><a href="track.html">Track Order</a>
-    </div>
-  </nav>
+  <!-- DYNAMIC NAV -->
+  <div id="navbar-root"></div>
 
   <section class="page-hero">
     <div class="container">
@@ -147,17 +118,18 @@
             <h3>Service &amp; Timeline</h3>
             <div class="form-group" style="margin-bottom:20px">
               <label>Service Type *</label>
-              <div class="service-picker" id="servicePicker">
-                <div class="sp-item active" data-val="ironing" onclick="selectService(this)">
+               <div class="service-picker" id="servicePicker">
+                <div class="sp-item active" data-val="ironing" onclick="toggleService(this)">
                   <span class="sp-icon">👔</span><span>Ironing</span>
                 </div>
-                <div class="sp-item" data-val="laundry" onclick="selectService(this)">
+                <div class="sp-item" data-val="laundry" onclick="toggleService(this)">
                   <span class="sp-icon">🫧</span><span>Laundry</span>
                 </div>
-                <div class="sp-item" data-val="drycleaning" onclick="selectService(this)">
+                <div class="sp-item" data-val="drycleaning" onclick="toggleService(this)">
                   <span class="sp-icon">🧥</span><span>Dry Cleaning</span>
                 </div>
               </div>
+              <p style="font-size:0.8rem; color:#6b7280; margin-top:8px;">💡 You can select multiple services for a single pickup!</p>
             </div>
             <div class="form-grid">
               <div class="form-group full" id="qtyGroupContainer">
@@ -323,6 +295,7 @@
 
   <script src="https://sandbox.cashfree.com/pg/js/api/cashfree.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/navbar.js"></script>
   <script src="js/toast.js"></script>
   <script src="js/main.js"></script>
   <script src="js/ui.js"></script>

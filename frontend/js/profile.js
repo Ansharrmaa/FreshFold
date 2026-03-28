@@ -2,13 +2,13 @@
 //  js/profile.js  –  Customer Dashboard with Referral, Rating & Reorder
 // ============================================================
 
-const token = localStorage.getItem('customerToken');
+const token = localStorage.getItem('ff_token');
 if (!token) {
   window.location.href = 'login.html';
 }
 
 function logout() {
-  localStorage.removeItem('customerToken');
+  localStorage.removeItem('ff_token');
   window.location.href = 'login.html';
 }
 
@@ -114,35 +114,33 @@ async function uploadProfilePhoto(input) {
     return showToast('Photo too large. Max 2MB.', 'warning');
   }
 
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const base64 = e.target.result;
-    try {
-      const res = await fetch('/api/users/photo', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ photo: base64 })
-      });
-      if (res.ok) {
-        showToast('Profile photo updated! 📸', 'success');
-        // Update profile avatar
-        const avatarEl = document.getElementById('profileAvatar');
-        if (avatarEl) avatarEl.innerHTML = `<img src="${base64}">`;
-        // Update navbar avatar if present
-        const navAvatar = document.getElementById('navAvatar');
-        if (navAvatar) navAvatar.innerHTML = `<img src="${base64}">`;
-      } else {
-        const data = await res.json();
-        showToast(data.error || 'Upload failed', 'error');
-      }
-    } catch (err) {
-      showToast('Error uploading photo', 'error');
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  try {
+    const res = await fetch('/api/users/photo', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast('Profile photo updated! 📸', 'success');
+      // Update profile avatar
+      const avatarEl = document.getElementById('profileAvatar');
+      if (avatarEl) avatarEl.innerHTML = `<img src="${data.profilePhoto}">`;
+      // Update navbar avatar if present
+      const navAvatar = document.getElementById('navAvatar');
+      if (navAvatar) navAvatar.innerHTML = `<img src="${data.profilePhoto}">`;
+    } else {
+      const data = await res.json();
+      showToast(data.error || 'Upload failed', 'error');
     }
-  };
-  reader.readAsDataURL(file);
+  } catch (err) {
+    showToast('Error uploading photo', 'error');
+  }
 }
 
 // ---- ANALYTICS & LOYALTY ----
@@ -178,6 +176,11 @@ async function fetchAnalytics() {
     if (document.getElementById('analyticsSaved')) document.getElementById('analyticsSaved').textContent = `₹${stats.moneySaved}`;
     if (document.getElementById('analyticsItems')) document.getElementById('analyticsItems').textContent = stats.totalItems;
     if (document.getElementById('analyticsPtsEarned')) document.getElementById('analyticsPtsEarned').textContent = stats.totalPointsEarned;
+    
+    // Top stat cards
+    if (document.getElementById('statTotalOrders')) document.getElementById('statTotalOrders').textContent = stats.totalOrders || 0;
+    if (document.getElementById('statActiveOrders')) document.getElementById('statActiveOrders').textContent = stats.activeOrders || 0;
+    if (document.getElementById('statTotalSpent')) document.getElementById('statTotalSpent').textContent = stats.totalSpent || 0;
   } catch (e) {}
 }
 
@@ -221,37 +224,43 @@ async function rechargeWallet() {
   }
 }
 
-// ---- ORDER HISTORY WITH RATING & REORDER ----
-async function fetchOrders() {
+// ---- ORDER HISTORY WITH PAGINATION & SEARCH ----
+let currentOrderPage = 1;
+let currentOrderSearch = '';
+
+async function fetchOrders(page = 1, append = false) {
   const container = document.getElementById('ordersList');
+  const loadMoreBtn = document.getElementById('loadMoreSection');
+  
+  if (!append) {
+    container.innerHTML = '<p style="color: #6b7280;">Loading orders...</p>';
+    currentOrderPage = 1;
+  }
+
   try {
-    const res = await fetch('/api/users/my-orders', {
+    const res = await fetch('/api/users/my-orders?page=' + page + '&limit=5&search=' + encodeURIComponent(currentOrderSearch), {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    const orders = await res.json();
-    
-    // Stats
-    const totalOrders = orders.length;
-    const activeOrders = orders.filter(o => ['Pending', 'In Progress', 'Out for Delivery'].includes(o.status)).length;
-    const totalSpent = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-    
-    document.getElementById('statTotalOrders').textContent = totalOrders;
-    document.getElementById('statActiveOrders').textContent = activeOrders;
-    document.getElementById('statTotalSpent').textContent = totalSpent;
+    const data = await res.json();
+    const orders = data.orders || [];
 
-    if (orders.length === 0) {
+    if (!append) container.innerHTML = ''; // Clear loading text
+
+    if (orders.length === 0 && !append) {
       container.innerHTML = `
         <div class="empty-state">
           <i class="fa-solid fa-basket-shopping"></i>
-          <h3>No orders yet</h3>
-          <p>You haven't placed any laundry orders with us yet. Let's change that!</p>
+          <h3>No orders found</h3>
+          <p>We couldn't find any orders matching your criteria.</p>
           <a href="booking.html" class="btn-primary" style="margin-top:15px; display:inline-block;">Book Now</a>
         </div>
       `;
+      if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+      fetchAnalytics();
       return;
     }
 
-    container.innerHTML = orders.map(o => {
+    const html = orders.map(o => {
       let statusGroup = 'Pending';
       if (['In Progress', 'Out for Delivery'].includes(o.status)) statusGroup = 'Progress';
       if (o.status === 'Delivered') statusGroup = 'Delivered';
@@ -263,14 +272,12 @@ async function fetchOrders() {
       let ratingHtml = '';
       if (o.status === 'Delivered') {
         if (o.rating) {
-          // Already rated - show filled stars
           ratingHtml = `<div class="star-rating" style="pointer-events:none;">`;
           for (let i = 1; i <= 5; i++) {
             ratingHtml += `<i class="fa-solid fa-star ${i <= o.rating ? 'active' : ''}"></i>`;
           }
           ratingHtml += `</div>`;
         } else {
-          // Not yet rated - show interactive stars
           ratingHtml = `<div class="star-rating" id="stars-${o.orderId}">`;
           for (let i = 1; i <= 5; i++) {
             ratingHtml += `<i class="fa-solid fa-star" data-val="${i}" onclick="rateOrder('${o.orderId}', ${i})" onmouseover="hoverStars('${o.orderId}', ${i})" onmouseout="resetStars('${o.orderId}')"></i>`;
@@ -309,6 +316,21 @@ async function fetchOrders() {
       `;
     }).join('');
 
+    if (append) {
+      container.insertAdjacentHTML('beforeend', html);
+    } else {
+      container.innerHTML = html;
+    }
+
+    currentOrderPage = data.currentPage;
+    if (loadMoreBtn) {
+      if (data.currentPage < data.totalPages) {
+        loadMoreBtn.style.display = 'block';
+      } else {
+        loadMoreBtn.style.display = 'none';
+      }
+    }
+
   } catch (err) {
     container.innerHTML = '<p style="color:red;">Error loading orders.</p>';
   }
@@ -316,6 +338,18 @@ async function fetchOrders() {
   // Load analytics after orders
   fetchAnalytics();
 }
+
+window.handleOrderSearch = function() {
+  const searchInput = document.getElementById('orderSearch');
+  if (searchInput) {
+    currentOrderSearch = searchInput.value.trim();
+    fetchOrders(1, false);
+  }
+};
+
+window.loadMoreOrders = function() {
+  fetchOrders(currentOrderPage + 1, true);
+};
 
 // ---- STAR RATING HELPERS ----
 function hoverStars(orderId, val) {

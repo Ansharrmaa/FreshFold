@@ -2,11 +2,11 @@
 //  booking.js  –  booking.html multi-step form (API-connected)
 // ============================================================
 
-let currentStep    = 1;
-let bookService    = 'ironing';
-let bookQty        = 3; // for laundry (kg)
-let selectedItems  = {}; // for ironing/drycleaning
-let bookCouponData = null;
+let currentStep     = 1;
+let selectedServices = ['ironing'];
+let bookQty         = 3; // for laundry (kg)
+let selectedItems   = {}; // for ironing/drycleaning
+let bookCouponData  = null;
 
 // Map variables
 let map, marker;
@@ -332,20 +332,32 @@ function changeItemQty(id, delta) {
   updateBookingPrice();
 }
 
-function selectService(el) {
-  document.querySelectorAll('.sp-item').forEach(i => i.classList.remove('active'));
-  el.classList.add('active');
-  bookService = el.dataset.val;
+function toggleService(el) {
+  const svc = el.dataset.val;
+  if (selectedServices.includes(svc)) {
+    if (selectedServices.length > 1) {
+      selectedServices = selectedServices.filter(s => s !== svc);
+      el.classList.remove('active');
+    } else {
+      showToast('Select at least one service', 'warning');
+    }
+  } else {
+    selectedServices.push(svc);
+    el.classList.add('active');
+  }
   
-  const isLaundry = (bookService === 'laundry');
-  document.getElementById('bookingQtyLabel').textContent = isLaundry ? 'Weight (KG) *' : 'Select Garments *';
+  const hasLaundry = selectedServices.includes('laundry');
+  const hasItemized = selectedServices.includes('ironing') || selectedServices.includes('drycleaning');
   
-  document.getElementById('itemizedContainer').style.display = isLaundry ? 'none' : 'grid';
-  document.getElementById('kgContainer').style.display = isLaundry ? 'flex' : 'none';
+  document.getElementById('bookingQtyLabel').textContent = 
+    (hasLaundry && hasItemized) ? 'Weight & Garments *' : 
+    (hasLaundry ? 'Weight (KG) *' : 'Select Garments *');
+  
+  document.getElementById('itemizedContainer').style.display = hasItemized ? 'grid' : 'none';
+  document.getElementById('kgContainer').style.display = hasLaundry ? 'flex' : 'none';
   
   updateBookingPrice();
 }
-
 // init
 if (document.readyState === 'loading') {
   window.addEventListener('DOMContentLoaded', initItemized);
@@ -449,44 +461,41 @@ async function applyBookCoupon() {
 }
 
 function calcTotal() {
-  const tl       = document.getElementById('timeline').value;
-  const baseRate = PRICES[bookService][tl];
+  const tl = document.getElementById('timeline').value;
   let subtotal = 0;
   
-  if (bookService === 'laundry') {
-    subtotal = baseRate * bookQty;
-  } else {
-    // Itemized
-    Object.keys(selectedItems).forEach(id => {
-      const qty = selectedItems[id];
-      if (qty > 0) {
-        const itemDef = GARMENT_ITEMS.find(it => it.id === id);
-        const itemCost = Math.round(baseRate * (itemDef ? itemDef.multiplier : 1));
-        subtotal += (itemCost * qty);
-      }
-    });
-  }
+  selectedServices.forEach(svc => {
+    const baseRate = PRICES[svc][tl];
+    if (svc === 'laundry') {
+      subtotal += baseRate * bookQty;
+    } else {
+      // Itemized (ironing or drycleaning)
+      Object.keys(selectedItems).forEach(id => {
+        const qty = selectedItems[id];
+        if (qty > 0) {
+          const itemDef = GARMENT_ITEMS.find(it => it.id === id);
+          const mult = itemDef ? itemDef.multiplier : 1;
+          const itemCost = Math.round(baseRate * mult);
+          subtotal += (itemCost * qty);
+        }
+      });
+    }
+  });
 
-  let   discount = bookCouponData ? Math.round(subtotal * bookCouponData.discount / 100) : 0;
-  
-  // 10% discount for recurring orders
+  let discount = bookCouponData ? Math.round(subtotal * bookCouponData.discount / 100) : 0;
   const isRec = document.getElementById('isRecurring') && document.getElementById('isRecurring').checked;
   if (isRec) discount += Math.round(subtotal * 0.10);
   
   const delivery = (subtotal - discount) >= 499 ? 0 : 49;
   let total = subtotal - discount + delivery;
 
-  // Loyalty Points logic
   let pointsRedeemed = 0;
   let pointsValue = 0;
   const redeemCb = document.getElementById('redeemLoyalty');
   const lSection = document.getElementById('loyaltySection');
   if (redeemCb && redeemCb.checked && lSection && lSection.dataset.points) {
     const maxPoints = parseInt(lSection.dataset.points, 10);
-    // 100 points = Rs. 10 -> 1 point = Rs. 0.1
     const ptValue = Math.floor(maxPoints / 10);
-    
-    // Redeem up to total minus 1 rupee (can't make total 0 if choosing online payment typically, but let's allow 0 for simple logic)
     if (ptValue >= total) {
       pointsValue = total;
       pointsRedeemed = total * 10;
@@ -498,7 +507,7 @@ function calcTotal() {
     }
   }
 
-  return { tl, baseRate, subtotal, discount, delivery, total, pointsRedeemed, pointsValue, isRec };
+  return { tl, subtotal, discount, delivery, total, pointsRedeemed, pointsValue, isRec };
 }
 
 function updateBookingPrice() {
@@ -542,8 +551,7 @@ function updateSidebar() {
     '<div><strong style="color:#1a1a2e">Customer:</strong> ' + name + '</div>' +
     '<div><strong style="color:#1a1a2e">Phone:</strong> ' + phone + '</div>' +
     '<div><strong style="color:#1a1a2e">Address:</strong> ' + (fullAddr || '—') + '</div>' +
-    '<div><strong style="color:#1a1a2e">Service:</strong> ' + svcLabels[bookService] + '</div>' +
-    '<div><strong style="color:#1a1a2e">Qty:</strong> ' + bookQty + ' ' + unit + '</div>' +
+    '<div><strong style="color:#1a1a2e">Service:</strong> ' + selectedServices.map(s => svcLabels[s]).join(' + ') + '</div>' +
     '<div><strong style="color:#1a1a2e">Timeline:</strong> ' + tlLabels[tl] + '</div>' +
     '<div><strong style="color:#1a1a2e">Date:</strong> ' + date + '</div>' +
     '<div><strong style="color:#1a1a2e">Slot:</strong> ' + slotLabels[slot] + '</div>' +
@@ -558,21 +566,26 @@ function buildReview() {
   const slotLabels = { morning: 'Morning (7–11am)', afternoon: 'Afternoon (12–4pm)', evening: 'Evening (5–9pm)' };
   const slot = document.getElementById('pickupSlot').value;
   const { tl, subtotal, discount, delivery, pointsValue, isRec, total } = calcTotal();
-  const unit = bookService === 'laundry' ? 'kg' : 'items';
   
   const recFreq = isRec ? document.getElementById('recurringFrequency').value : '';
 
-  let itemsStr = '';
-  if (bookService === 'laundry') {
-    itemsStr = `${bookQty} kg`;
-  } else {
-    itemsStr = Object.entries(selectedItems)
-      .filter(([id, qty]) => qty > 0)
-      .map(([id, qty]) => {
-        const itemDef = GARMENT_ITEMS.find(it => it.id === id);
-        return `${qty}x ${itemDef ? itemDef.name : id}`;
-      }).join(', ');
+  let itemsDetail = [];
+  if (selectedServices.includes('laundry')) {
+    itemsDetail.push(`${bookQty} kg (Laundry)`);
   }
+  
+  const itemizedItemsList = Object.entries(selectedItems)
+    .filter(([id, qty]) => qty > 0)
+    .map(([id, qty]) => {
+      const itemDef = GARMENT_ITEMS.find(it => it.id === id);
+      return `${qty}x ${itemDef ? itemDef.name : id}`;
+    });
+    
+  if (itemizedItemsList.length > 0) {
+    itemsDetail.push(itemizedItemsList.join(', '));
+  }
+  
+  const itemsStr = itemsDetail.join(' | ');
 
   const h = document.getElementById('addrHouse').value.trim();
   const a = document.getElementById('addrArea').value.trim();
@@ -583,7 +596,7 @@ function buildReview() {
     '<strong>Name:</strong> '    + document.getElementById('fullName').value + '<br/>' +
     '<strong>Phone:</strong> '   + document.getElementById('phone').value    + '<br/>' +
     '<strong>Address:</strong> ' + fullAddr + '<br/>' +
-    '<strong>Service:</strong> ' + svcLabels[bookService] + '<br/>' +
+    '<strong>Service:</strong> ' + selectedServices.map(s => svcLabels[s]).join(' + ') + '<br/>' +
     '<strong>Items:</strong> '   + itemsStr + '<br/>' +
     '<strong>Timeline:</strong> '+ tlLabels[tl]            + '<br/>' +
     '<strong>Pickup:</strong> '  + document.getElementById('pickupDate').value + ' · ' + slotLabels[slot] + '<br/>' +
@@ -609,16 +622,32 @@ async function placeOrder() {
   const dateD = new Date(document.getElementById('pickupDate').value);
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-  let finalQty = bookQty;
+  let finalQty = 0;
   let finalItems = [];
-  if (bookService !== 'laundry') {
-    finalQty = Object.values(selectedItems).reduce((s, a) => s + a, 0);
-    finalItems = Object.entries(selectedItems)
-      .filter(([id, qty]) => qty > 0)
-      .map(([id, qty]) => {
+
+  if (selectedServices.includes('laundry')) {
+    finalQty += bookQty;
+    finalItems.push({ name: 'Laundry Weight', qty: bookQty, unit: 'kg', price: PRICES['laundry'][tl] });
+  }
+
+  const itemizedServices = selectedServices.filter(s => s !== 'laundry');
+  if (itemizedServices.length > 0) {
+    const totalItemQty = Object.values(selectedItems).reduce((s, a) => s + a, 0);
+    finalQty += totalItemQty;
+    
+    Object.entries(selectedItems).forEach(([id, qty]) => {
+      if (qty > 0) {
         const def = GARMENT_ITEMS.find(it => it.id === id);
-        return { name: def ? def.name : id, qty, price: Math.round(calcTotal().baseRate * (def ? def.multiplier : 1)) };
-      });
+        itemizedServices.forEach(svc => {
+          finalItems.push({ 
+            name: `${def ? def.name : id} (${svcLabels[svc]})`, 
+            qty, 
+            unit: 'items',
+            price: Math.round(PRICES[svc][tl] * (def ? def.multiplier : 1)) 
+          });
+        });
+      }
+    });
   }
 
   const h = document.getElementById('addrHouse').value.trim();
@@ -632,10 +661,10 @@ async function placeOrder() {
     email:       document.getElementById('email').value,
     address:     fullAddr,
     pincode:     document.getElementById('pincode').value,
-    service:     svcLabels[bookService],
-    serviceKey:  bookService,
+    service:     selectedServices.map(s => svcLabels[s]).join(' + '),
+    serviceKey:  selectedServices.join(','),
     qty:         finalQty,
-    unit:        bookService === 'laundry' ? 'kg' : 'items',
+    unit:        selectedServices.includes('laundry') && selectedServices.length === 1 ? 'kg' : 'mixed',
     items:       finalItems,
     timeline:    tlLabels[tl],
     timelineKey: tl,

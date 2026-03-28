@@ -238,8 +238,21 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
     );
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
-    // Send WhatsApp notification (non-blocking)
+    // Emit live update via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.to(order.orderId).emit('status_updated', {
+        orderId: order.orderId,
+        status: order.status,
+        agentLat: order.agentLat,
+        agentLng: order.agentLng
+      });
+    }
+
+    // Send Async Notifications (non-blocking)
     notifyOrderStatus(order, status).catch(console.error);
+    const { sendStatusUpdateEmail } = require('../utils/email');
+    sendStatusUpdateEmail(order, status).catch(console.error);
 
     res.json({ message: 'Status updated', id: order.orderId, status: order.status });
   } catch (err) {

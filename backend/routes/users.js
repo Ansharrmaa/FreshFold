@@ -8,7 +8,7 @@ const jwt     = require('jsonwebtoken');
 const User    = require('../models/User');
 const Order   = require('../models/Order');
 const Subscription = require('../models/Subscription');
-const { requireCustomerAuth, requireAuth } = require('../auth');
+const { requireCustomerAuth, requireAuth, SECRET } = require('../auth');
 
 // ==============================
 //  PUBLIC — Register Customer
@@ -16,13 +16,13 @@ const { requireCustomerAuth, requireAuth } = require('../auth');
 router.post('/register', async (req, res) => {
   try {
     const { name, phone, email, password, referralCode } = req.body;
-    if (!name || !phone || !password) {
-      return res.status(400).json({ error: 'Name, Phone, and Password are required' });
+    if (!name || !phone || !email || !password) {
+      return res.status(400).json({ error: 'Name, Phone, Email, and Password are required' });
     }
 
-    const existing = await User.findOne({ phone });
+    const existing = await User.findOne({ $or: [{ phone }, { email }] });
     if (existing) {
-      return res.status(409).json({ error: 'User with this phone number already exists' });
+      return res.status(409).json({ error: 'User with this phone number or email already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -54,6 +54,11 @@ router.post('/register', async (req, res) => {
     }
 
     const token = jwt.sign({ role: 'customer', id: newUser._id, phone: newUser.phone }, SECRET, { expiresIn: '30d' });
+
+    // Send Welcome SMS (non-blocking)
+    const { sendWelcomeSMS } = require('../utils/sms');
+    sendWelcomeSMS(phone, name).catch(console.error);
+
     res.status(201).json({ message: 'User created successfully', token });
   } catch (err) {
     console.error('Registration Error:', err);
@@ -67,10 +72,11 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { phone, password } = req.body;
-    if (!phone || !password) return res.status(400).json({ error: 'Phone and password required' });
+    if (!phone || !password) return res.status(400).json({ error: 'Email/Phone and password required' });
 
-    const user = await User.findOne({ phone });
-    if (!user) return res.status(401).json({ error: 'Invalid phone or password' });
+    // Find by phone or email
+    const user = await User.findOne({ $or: [{ phone: phone }, { email: phone }] });
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid phone or password' });
@@ -97,15 +103,35 @@ router.get('/me', requireCustomerAuth, async (req, res) => {
 });
 
 // ==============================
-//  PRIVATE — Get My Orders
+//  PRIVATE — Get My Orders (Paginated & Searchable)
 // ==============================
 router.get('/my-orders', requireCustomerAuth, async (req, res) => {
   try {
-    // We link orders by phone number since orders don't currently have a userId reference
-    const orders = await Order.find({ phone: req.user.phone }).sort({ createdAt: -1 }).lean();
-    // For frontend compatibility
+    const { page = 1, limit = 5, search = '' } = req.query;
+    const skip = (page - 1) * Number(limit);
+
+    let filter = { phone: req.user.phone };
+    if (search) {
+      filter.$or = [
+        { orderId: new RegExp(search, 'i') },
+        { service: new RegExp(search, 'i') }
+      ];
+    }
+
+    const totalDocCount = await Order.countDocuments(filter);
+    const orders = await Order.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .lean();
+
     const formattedOrders = orders.map(o => ({ ...o, id: o.orderId }));
-    res.json(formattedOrders);
+    res.json({
+      orders: formattedOrders,
+      currentPage: Number(page),
+      totalPages: Math.ceil(totalDocCount / Number(limit)),
+      totalOrders: totalDocCount
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error fetching user orders' });
   }
@@ -194,18 +220,13 @@ router.post('/wallet/recharge', requireCustomerAuth, async (req, res) => {
 // ==============================
 //  PRIVATE — Upload Profile Photo
 // ==============================
-router.post('/photo', requireCustomerAuth, async (req, res) => {
+const { upload } = require('../utils/cloudinary');
+router.post('/photo', requireCustomerAuth, upload.single('photo'), async (req, res) => {
   try {
-    const { photo } = req.body;
-    if (!photo) return res.status(400).json({ error: 'Photo data required' });
-    
-    // Limit to ~2MB base64
-    if (photo.length > 2 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Photo too large. Max 2MB.' });
-    }
+    if (!req.file) return res.status(400).json({ error: 'Photo file required' });
 
     const user = await User.findById(req.user.id);
-    user.profilePhoto = photo;
+    user.profilePhoto = req.file.path; // Cloudinary URL
     await user.save();
 
     res.json({ message: 'Photo updated', profilePhoto: user.profilePhoto });
@@ -249,12 +270,16 @@ router.get('/stats', requireCustomerAuth, async (req, res) => {
     
     // Money saved
     const moneySaved = orders.reduce((sum, o) => sum + (o.discount || 0), 0);
+    
+    // Active orders
+    const activeOrders = orders.filter(o => ['Pending', 'In Progress', 'Out for Delivery'].includes(o.status)).length;
 
     res.json({
       monthlySpend,
       favoriteService,
       totalItems,
       totalOrders: orders.length,
+      activeOrders,
       totalSpent: orders.reduce((sum, o) => sum + o.total, 0),
       moneySaved,
       loyaltyPoints: user.loyaltyPoints || 0,
@@ -262,6 +287,127 @@ router.get('/stats', requireCustomerAuth, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to load stats' });
+  }
+});
+
+// ==============================
+//  PUBLIC — Forgot Password
+// ==============================
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const user = await User.findOne({ $or: [{ email }, { phone: email }] });
+    if (!user) {
+      // Don't reveal whether the email exists
+      return res.json({ message: 'If an account exists with this email, a reset link has been sent.' });
+    }
+
+    // Generate reset token (random hex)
+    const crypto = require('crypto');
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = resetTokenExpiry;
+    await user.save();
+
+    // Build reset URL
+    const baseUrl = req.headers.origin || `http://localhost:${process.env.PORT || 3000}`;
+    const resetLink = `${baseUrl}/reset-password.html?token=${resetToken}`;
+
+    // Send email
+    const { sendPasswordResetEmail } = require('../utils/email');
+    await sendPasswordResetEmail(user.email, resetLink);
+
+    res.json({ message: 'If an account exists with this email, a reset link has been sent.' });
+  } catch (err) {
+    console.error('Forgot Password Error:', err);
+    res.status(500).json({ error: 'Server error. Please try again later.' });
+  }
+});
+
+// ==============================
+//  PUBLIC — Reset Password
+// ==============================
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Token and new password are required' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset token. Please request a new reset link.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+
+    res.json({ message: 'Password reset successfully! You can now log in.' });
+  } catch (err) {
+    console.error('Reset Password Error:', err);
+    res.status(500).json({ error: 'Server error. Please try again later.' });
+  }
+});
+
+// ==============================
+//  PUBLIC — Google OAuth
+// ==============================
+router.post('/google-auth', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) return res.status(400).json({ error: 'Google credential is required' });
+
+    // Verify Google ID token
+    const axios = require('axios');
+    const googleResp = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    const payload = googleResp.data;
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({ error: 'Invalid Google token' });
+    }
+
+    const { email, name, sub: googleId, picture } = payload;
+
+    // Check if user exists by googleId or email
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (user) {
+      // Update googleId if not set
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+    } else {
+      // Create new user (no password needed for Google users)
+      const myReferralCode = 'FF' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      user = new User({
+        name: name || 'Google User',
+        phone: 'google_' + googleId, // placeholder phone
+        email,
+        password: await bcrypt.hash(googleId + Date.now(), 10), // random password
+        googleId,
+        profilePhoto: picture || '',
+        referralCode: myReferralCode,
+        addresses: []
+      });
+      await user.save();
+    }
+
+    const token = jwt.sign({ role: 'customer', id: user._id, phone: user.phone }, SECRET, { expiresIn: '30d' });
+    res.json({ message: 'Google login successful', token });
+  } catch (err) {
+    console.error('Google Auth Error:', err);
+    res.status(500).json({ error: 'Google authentication failed' });
   }
 });
 
